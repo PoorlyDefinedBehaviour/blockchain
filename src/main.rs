@@ -3,6 +3,7 @@ pub mod chain;
 pub mod consensus;
 pub mod controller;
 pub mod proof_of_work;
+pub mod viewmodel;
 
 use chain::Chain;
 
@@ -22,6 +23,8 @@ async fn main() -> std::io::Result<()> {
       .service(controller::mine)
       .service(controller::create_transaction)
       .service(controller::get_chain)
+      .service(controller::add_node_to_network)
+      .service(controller::resolve_conflicts)
   })
   .bind("127.0.0.1:8080")?
   .run()

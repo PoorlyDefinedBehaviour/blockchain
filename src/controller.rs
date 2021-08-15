@@ -1,18 +1,11 @@
-use crate::block::{Block, Sender, Transaction};
+use crate::block::{Sender, Transaction};
 use crate::chain::Chain;
-
+use crate::consensus;
 use crate::proof_of_work;
-use serde::{Deserialize, Serialize};
-use std::convert::From;
+use crate::viewmodel;
 use std::sync::RwLock;
 
 use actix_web::{get, post, web, HttpResponse, Responder};
-
-#[derive(Deserialize, Serialize)]
-struct MineViewModel {
-  pub message: String,
-  pub block: BlockViewModel,
-}
 
 #[post("/mine")]
 async fn mine(chain: web::Data<RwLock<Chain>>, node: web::Data<String>) -> impl Responder {
@@ -30,28 +23,16 @@ async fn mine(chain: web::Data<RwLock<Chain>>, node: web::Data<String>) -> impl 
 
   let block = chain.block(proof);
 
-  HttpResponse::Ok().json(MineViewModel {
+  HttpResponse::Ok().json(viewmodel::MineViewModel {
     message: "block forged".to_owned(),
-    block: BlockViewModel::from(block),
+    block: viewmodel::BlockViewModel::from(block),
   })
-}
-
-#[derive(Deserialize, Serialize)]
-struct MessageResponseViewModel {
-  pub message: String,
-}
-
-#[derive(Deserialize, Serialize)]
-struct CreateTransactionViewModel {
-  pub sender: String,
-  pub recipient: String,
-  pub amount: i64,
 }
 
 #[post("/transactions")]
 async fn create_transaction(
   chain: web::Data<RwLock<Chain>>,
-  transaction_viewmodel: web::Json<CreateTransactionViewModel>,
+  transaction_viewmodel: web::Json<viewmodel::CreateTransactionViewModel>,
 ) -> impl Responder {
   let mut chain = chain.write().unwrap();
 
@@ -67,100 +48,44 @@ async fn create_transaction(
 
   let message = format!("transaction will be added to block {}", block_index);
 
-  HttpResponse::Ok().json(MessageResponseViewModel { message })
-}
-
-#[derive(Deserialize, Serialize)]
-struct TransactionViewModel {
-  pub sender: String,
-  pub recipient: String,
-  pub amount: i64,
-}
-
-impl From<Transaction> for TransactionViewModel {
-  fn from(item: Transaction) -> Self {
-    let sender = match item.sender {
-      Sender::System => "System".to_owned(),
-      Sender::Client(client_id) => client_id,
-    };
-
-    TransactionViewModel {
-      sender,
-      recipient: item.recipient,
-      amount: item.amount,
-    }
-  }
-}
-
-#[derive(Deserialize, Serialize)]
-struct BlockViewModel {
-  pub index: usize,
-  pub timestamp: u128,
-  pub transactions: Vec<TransactionViewModel>,
-  pub previous_block_hash: String,
-  pub proof: usize,
-}
-
-impl From<Block> for BlockViewModel {
-  fn from(item: Block) -> Self {
-    BlockViewModel {
-      index: item.index,
-      timestamp: item.timestamp,
-      transactions: item
-        .transactions
-        .iter()
-        .map(|t| TransactionViewModel::from(t.clone()))
-        .collect(),
-      previous_block_hash: item.previous_block_hash,
-      proof: item.proof,
-    }
-  }
-}
-
-#[derive(Deserialize, Serialize)]
-struct GetChainViewModel {
-  pub length: usize,
-  pub blocks: Vec<BlockViewModel>,
+  HttpResponse::Ok().json(viewmodel::MessageViewModel { message })
 }
 
 #[get("/chain")]
 async fn get_chain(data: web::Data<RwLock<Chain>>) -> impl Responder {
   let chain = data.read().unwrap();
 
-  HttpResponse::Ok().json(GetChainViewModel {
-    length: chain.blocks.len(),
-    blocks: chain
-      .blocks
-      .iter()
-      .map(|block| BlockViewModel::from(block.clone()))
-      .collect(),
-  })
+  HttpResponse::Ok().json(viewmodel::ChainViewModel::from(chain.clone()))
 }
 
 #[post("/nodes")]
-async fn add_node_to_network(data: web::Data<RwLock<Chain>>) -> impl Responder {
-  let chain = data.read().unwrap();
+async fn add_node_to_network(
+  data: web::Data<RwLock<Chain>>,
+  viewmodel: web::Json<viewmodel::AddNodeToNetworkViewModel>,
+) -> impl Responder {
+  let mut chain = data.write().unwrap();
 
-  HttpResponse::Ok().json(GetChainViewModel {
-    length: chain.blocks.len(),
-    blocks: chain
-      .blocks
-      .iter()
-      .map(|block| BlockViewModel::from(block.clone()))
-      .collect(),
-  })
+  match chain.register_node(&viewmodel.address) {
+    Err(_) => HttpResponse::BadRequest().json(viewmodel::MessageViewModel {
+      message: format!("{} is not valid", viewmodel.address),
+    }),
+    Ok(()) => HttpResponse::Ok().json(viewmodel::MessageViewModel {
+      message: format!("{} added to network", viewmodel.address),
+    }),
+  }
 }
 
 #[post("/nodes/resolve")]
-async fn resolve_nodes_conflict(data: web::Data<RwLock<Chain>>) -> impl Responder {
-  let chain = data.read().unwrap();
+async fn resolve_conflicts(data: web::Data<RwLock<Chain>>) -> impl Responder {
+  let mut chain = data.write().unwrap();
 
-  HttpResponse::Ok().json(GetChainViewModel {
-    length: chain.blocks.len(),
-    blocks: chain
-      .blocks
-      .iter()
-      .map(|block| BlockViewModel::from(block.clone()))
-      .collect(),
-  })
+  match consensus::resolve_conflicts(&chain).await {
+    Err(_) => HttpResponse::InternalServerError(),
+    Ok(longest_chain) => {
+      chain.blocks = longest_chain.blocks;
+      chain.transactions = longest_chain.transactions;
+      chain.nodes = longest_chain.nodes;
+      HttpResponse::Ok()
+    }
+  }
 }

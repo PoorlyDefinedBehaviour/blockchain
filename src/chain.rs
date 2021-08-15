@@ -2,7 +2,7 @@ use crate::block::{Block, Transaction};
 use std::collections::HashSet;
 use std::net::{AddrParseError, SocketAddr};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Chain {
   pub blocks: Vec<Block>,
   pub transactions: Vec<Transaction>,
@@ -27,7 +27,7 @@ impl Chain {
     }
   }
 
-  pub fn register_node(&mut self, address: String) -> Result<(), AddrParseError> {
+  pub fn register_node(&mut self, address: &str) -> Result<(), AddrParseError> {
     let parsed_address = address.parse::<SocketAddr>()?;
     self.nodes.insert(parsed_address);
     Ok(())
