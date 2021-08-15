@@ -1,20 +1,19 @@
-use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone)]
 pub enum Sender {
   System,
   Client(String),
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone)]
 pub struct Transaction {
   pub sender: Sender,
   pub recipient: String,
   pub amount: i64,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone)]
 pub struct Block {
   pub index: usize,
   pub timestamp: u128,
