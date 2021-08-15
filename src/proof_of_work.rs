@@ -8,6 +8,10 @@ pub fn mine(last_proof: usize) -> usize {
 
     let hash = format!("{:x}", sha2::Sha256::digest(guess.as_bytes()));
 
-    hash.ends_with("0000")
+    if hash.ends_with("0000") {
+      return nonce;
+    }
+
+    nonce += 1;
   }
 }
