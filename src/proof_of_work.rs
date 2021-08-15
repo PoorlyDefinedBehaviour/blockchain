@@ -8,10 +8,20 @@ pub fn mine(last_proof: usize) -> usize {
 
     let hash = format!("{:x}", sha2::Sha256::digest(guess.as_bytes()));
 
+    // TODO: this is duplicated and it is not obvious
+    // that it is connected to the mining difficulty
     if hash.ends_with("0000") {
       return nonce;
     }
 
     nonce += 1;
   }
+}
+
+pub fn is_proof_valid(last_proof: usize, proof: usize, previous_block_hash: &String) -> bool {
+  let guess = format!("{}{}{}", last_proof, proof, previous_block_hash);
+
+  let hash = format!("{:x}", sha2::Sha256::digest(guess.as_bytes()));
+
+  hash.ends_with("0000")
 }

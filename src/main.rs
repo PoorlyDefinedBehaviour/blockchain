@@ -1,5 +1,6 @@
 pub mod block;
 pub mod chain;
+pub mod consensus;
 pub mod controller;
 pub mod proof_of_work;
 

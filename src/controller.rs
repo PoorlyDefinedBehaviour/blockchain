@@ -136,3 +136,31 @@ async fn get_chain(data: web::Data<RwLock<Chain>>) -> impl Responder {
       .collect(),
   })
 }
+
+#[post("/nodes")]
+async fn add_node_to_network(data: web::Data<RwLock<Chain>>) -> impl Responder {
+  let chain = data.read().unwrap();
+
+  HttpResponse::Ok().json(GetChainViewModel {
+    length: chain.blocks.len(),
+    blocks: chain
+      .blocks
+      .iter()
+      .map(|block| BlockViewModel::from(block.clone()))
+      .collect(),
+  })
+}
+
+#[post("/nodes/resolve")]
+async fn resolve_nodes_conflict(data: web::Data<RwLock<Chain>>) -> impl Responder {
+  let chain = data.read().unwrap();
+
+  HttpResponse::Ok().json(GetChainViewModel {
+    length: chain.blocks.len(),
+    blocks: chain
+      .blocks
+      .iter()
+      .map(|block| BlockViewModel::from(block.clone()))
+      .collect(),
+  })
+}
