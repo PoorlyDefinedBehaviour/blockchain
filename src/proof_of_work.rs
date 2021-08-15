@@ -18,7 +18,7 @@ pub fn mine(last_proof: usize) -> usize {
   }
 }
 
-pub fn is_proof_valid(last_proof: usize, proof: usize, previous_block_hash: &String) -> bool {
+pub fn is_proof_valid(last_proof: usize, proof: usize, previous_block_hash: &str) -> bool {
   let guess = format!("{}{}{}", last_proof, proof, previous_block_hash);
 
   let hash = format!("{:x}", sha2::Sha256::digest(guess.as_bytes()));
