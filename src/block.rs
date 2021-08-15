@@ -1,27 +1,25 @@
 use sha2::Digest;
 
+#[derive(Debug, Clone)]
+pub struct Transaction {
+  pub sender: String,
+  pub recipient: String,
+  pub amount: i64,
+}
+
 #[derive(Debug)]
 pub struct Block {
+  pub index: usize,
+  pub timestamp: usize,
+  pub transactions: Vec<Transaction>,
   pub previous_block_hash: String,
-  pub data: String,
-  pub hash: String,
+  pub proof: usize,
 }
 
 impl Block {
-  fn hash(data: &String, previous_block_hash: &String) -> String {
-    let current_block_hash_contents = format!("{}{}", data, previous_block_hash);
+  fn hash(&self) -> String {
+    let block_as_string = format!("{:?}", self);
 
-    format!(
-      "{:x}",
-      sha2::Sha256::digest(current_block_hash_contents.as_bytes())
-    )
-  }
-
-  pub fn new(data: String, previous_block_hash: String) -> Self {
-    Block {
-      hash: Block::hash(&data, &previous_block_hash),
-      previous_block_hash,
-      data,
-    }
+    format!("{:x}", sha2::Sha256::digest(block_as_string.as_bytes()))
   }
 }

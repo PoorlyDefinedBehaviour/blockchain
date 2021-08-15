@@ -1,26 +1,43 @@
-use crate::block::Block;
+use crate::block::{Block, Transaction};
 
 #[derive(Debug)]
 pub struct Chain {
-  pub blocks: Vec<Block>,
+  blocks: Vec<Block>,
+  transactions: Vec<Transaction>,
 }
 
 impl Chain {
-  fn generate_genesis_block() -> Block {
-    Block::new("genesis".to_owned(), "".to_owned())
-  }
-
   pub fn new() -> Self {
-    Chain {
-      blocks: vec![Chain::generate_genesis_block()],
-    }
+    let mut chain = Chain {
+      blocks: Vec::new(),
+      transactions: Vec::new(),
+    };
+
+    chain.block(100, "".to_owned());
+
+    chain
+  }
+  pub fn transaction(&mut self, sender: String, recipient: String, amount: i64) -> usize {
+    self.transactions.push(Transaction {
+      sender,
+      recipient,
+      amount,
+    });
+
+    let last_block = self.blocks.last().unwrap();
+
+    last_block.index + 1
   }
 
-  pub fn add_block(&mut self, data: String) {
-    let previous_block = self.blocks.last().unwrap();
+  fn block(&mut self, proof: usize, previous_block_hash: String) {
+    self.blocks.push(Block {
+      index: self.blocks.len() + 1,
+      timestamp: 1,
+      transactions: self.transactions.clone(),
+      proof,
+      previous_block_hash,
+    });
 
-    let block = Block::new(data, previous_block.hash.clone());
-
-    self.blocks.push(block);
+    self.transactions.clear();
   }
 }
